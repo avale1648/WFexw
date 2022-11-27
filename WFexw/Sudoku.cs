@@ -10,15 +10,18 @@ using System.Windows.Forms;
 
 namespace WFexw
 {
-    public partial class Form1 : Form
+    public partial class Sudoku : Form
     {
+        private int selectedX = 0, selectedY = 0;
+        private int lifes = 3;
         private Random random = new Random();
         private int hintsNumber = 40;
         private const int n = 3;
         private const int cellSize = 50;
         private int[,] map = new int[n * n, n * n];
         private Button[,] cells = new Button[n * n, n * n];
-        public Form1()
+        private string[,] notes = new string[n * n, n * n];
+        public Sudoku()
         {
             InitializeComponent();
             GenerateMap();
@@ -158,7 +161,7 @@ namespace WFexw
         }
         private void ShowHints()
         {
-            for(int i = 0; i < hintsNumber; i++)
+            for (int i = 0; i < hintsNumber; i++)
             {
                 int x = random.Next(n * n);
                 int y = random.Next(n * n);
@@ -168,38 +171,72 @@ namespace WFexw
         }
         private void cells_Click(object sender, EventArgs e)
         {
-            Button pressedCell = sender as Button;
-            string cellText = pressedCell.Text;
-            if(string.IsNullOrEmpty(cellText))
+            //Button pressedCell = sender as Button;
+            //string cellText = pressedCell.Text;
+            //if(string.IsNullOrEmpty(cellText))
+            //{
+            //    pressedCell.Text = "1";
+            //}
+            //else
+            //{
+            //    int value = int.Parse(cellText);
+            //    value++;
+            //    if (value == 10) value = 1;
+            //    pressedCell.Text = value.ToString();
+            //}
+            Button selectedCell = sender as Button;
+            for (int i = 0; i < n * n; i++)
             {
-                pressedCell.Text = "1";
+                for (int j = 0; j < n * n; j++)
+                {
+                    if (selectedCell.Location == cells[i, j].Location)
+                    {
+                        selectedX = i;
+                        selectedY = j;
+                    }
+                }
             }
-            else
+            labelPlayerName.Text = $"{selectedX} {selectedY}";
+        }
+        private void buttonRubber_Click(object sender, EventArgs e)
+        {
+            if (cells[selectedX, selectedY].Enabled)
             {
-                int value = int.Parse(cellText);
-                value++;
-                if (value == 10) value = 1;
-                pressedCell.Text = value.ToString();
+                cells[selectedX, selectedY].Text = string.Empty;
+                cells[selectedX, selectedY].ForeColor = Color.Black;
             }
         }
 
-        private void checkButton_Click(object sender, EventArgs e)
+        private void buttonN_Click(object sender, EventArgs e)
         {
-            int fails = 0;
-            for(int i = 0; i < n*n; i++)
+            Button buttonN = sender as Button;
+            if (!checkBoxPen.Checked)//если не заметки
             {
-                for(int j = 0; j < n*n;j++)
+                cells[selectedX, selectedY].Text = buttonN.Text;
+                if (cells[selectedX, selectedY].Text == map[selectedX, selectedY].ToString())
                 {
-                    string cellText = cells[i, j].Text;
-                    if (cellText != map[i, j].ToString())
-                        fails++;
+                    cells[selectedX, selectedY].Enabled = false;
+                }
+                else if (cells[selectedX, selectedY].Text.Length == 1 && cells[selectedX, selectedY].Text != map[selectedX, selectedY].ToString())
+                {
+                    cells[selectedX, selectedY].ForeColor = Color.Red;
+                    lifes--; labelLifes.Text = $"Lifes: {lifes}";
+                    if (lifes == 0)
+                    {
+                        MessageBox.Show("You lose...");
+                        Close();
+                    }
                 }
             }
-            if(fails == 0)
-                MessageBox.Show("Congradilations! You solved Sudoku without errors.", "Victory", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            else
-                MessageBox.Show($"You lose, sudoku was solved with {fails} errors.", "Lose", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            Close();
+            else//если заметки
+            {
+                if (cells[selectedX, selectedY].Enabled)
+                {
+                    cells[selectedX, selectedY].ForeColor = Color.DarkGray;
+                    if (!cells[selectedX, selectedY].Text.Contains(buttonN.Text))
+                        cells[selectedX, selectedY].Text += buttonN.Text;
+                }
+            }
         }
     }
 }
