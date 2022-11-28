@@ -7,50 +7,91 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.IO;
+using System.Timers;
+using System.Runtime.InteropServices;
 
 namespace WFexw
 {
     public partial class Sudoku : Form
     {
+        private System.Timers.Timer timer = new System.Timers.Timer();
+        private int hour, minute, second;
+        private void Sudoku_Load(object sender, EventArgs e)
+        {
+            timer.Interval = 1000;
+            timer.Elapsed += OnTimeEvent;
+        }
+        private void OnTimeEvent(object sender, ElapsedEventArgs e)
+        {
+            Invoke(new Action(() =>
+            {
+                second++;
+                if(second == 60)
+                {
+                    second = 0; minute++;
+                }
+                if(minute == 60)
+                {
+                    minute = 0; hour++;
+                }
+                labelTime.Text = $"{hour.ToString().PadLeft(2, '0')}:{minute.ToString().PadLeft(2, '0')}:" +
+                $"{second.ToString().PadLeft(2, '0')}";
+            }));
+        }
+        public string PlayerName { get; set; }
+        public int Hints { get; set; }
+
+        private bool isShowingAllHints = true;
         private int selectedX = 0, selectedY = 0;
         private int lifes = 3;
         private Random random = new Random();
-        private int hintsNumber = 40;
         private const int n = 3;
         private const int cellSize = 50;
         private int[,] map = new int[n * n, n * n];
         private Button[,] cells = new Button[n * n, n * n];
         private string[,] notes = new string[n * n, n * n];
+        public Sudoku(string playerName, int hints)
+        {
+            PlayerName = playerName;
+            Hints = hints;
+            InitializeComponent();
+            labelPlayerName.Text = PlayerName;
+            GenerateMap();
+            timer.Start();
+        }
         public Sudoku()
         {
             InitializeComponent();
             GenerateMap();
         }
-        public void GenerateMap()
+        public void GenerateMap()//Метод, в котором создается карта
         {
             for (int i = 0; i < n * n; i++)
             {
                 for (int j = 0; j < n * n; j++)
-                    map[i, j] = (i * n + i / n + j) % (n * n) + 1;
+                    map[i, j] = (i * n + i / n + j) % (n * n) + 1;//по этой форме            
+                                                                  //карта заполняется следующим образом:
+                                                                  //каждый новый ряд сдвигается на 3, т.е:
             }
             for (int i = 0; i < 10; i++)
                 MixMapOptionChoose(random.Next(5));
             CreateMap();
             ShowHints();
         }
-        private void MatrixTransposition()
+        private void Rotate()//"переворачивает" карту 
         {
             int[,] mapCopy = new int[n * n, n * n];
             for (int i = 0; i < n * n; i++)
             {
                 for (int j = 0; j < n * n; j++)
                 {
-                    mapCopy[i, j] = map[i, j];
+                    mapCopy[i, j] = map[j,i];
                 }
             }
             map = mapCopy;
         }
-        private void MixRowsInBlock()
+        private void MixRowsInBlock()//перемешивание строк в блоке
         {
             int block = random.Next(n);
             int row1 = random.Next(n);
@@ -66,7 +107,7 @@ namespace WFexw
                 map[col2, i] = temp;
             }
         }
-        private void MixColumnsInBlock()
+        private void MixColumnsInBlock()//перемешивание столбцов в блоке
         {
             int block = random.Next(n);
             int row1 = random.Next(n);
@@ -82,7 +123,7 @@ namespace WFexw
                 map[i, col2] = temp;
             }
         }
-        private void MixBlocksInRow()
+        private void MixBlocksHorizontal()//перемешивание блоков по горизонтали
         {
             int block1 = random.Next(n);
             int block2 = random.Next(n);
@@ -102,7 +143,7 @@ namespace WFexw
                 }
             }
         }
-        private void MixBlocksInColumn()
+        private void MixBlocksVertical()
         {
             int block1 = random.Next(n);
             int block2 = random.Next(n);
@@ -122,7 +163,7 @@ namespace WFexw
                 }
             }
         }
-        private void CreateMap()
+        private void CreateMap()//инициализация ячеек и их параметров
         {
             for (int i = 0; i < n * n; i++)
             {
@@ -138,12 +179,12 @@ namespace WFexw
                 }
             }
         }
-        private void MixMapOptionChoose(int option)
+        private void MixMapOptionChoose(int option)//выбор способа перемешивания
         {
             switch (option)
             {
                 case 0:
-                    MatrixTransposition();
+                    Rotate();
                     break;
                 case 1:
                     MixRowsInBlock();
@@ -152,38 +193,39 @@ namespace WFexw
                     MixColumnsInBlock();
                     break;
                 case 3:
-                    MixBlocksInRow();
+                    MixBlocksHorizontal();
                     break;
                 case 4:
-                    MixBlocksInColumn();
+                    MixBlocksVertical();
                     break;
             }
         }
         private void ShowHints()
         {
-            for (int i = 0; i < hintsNumber; i++)
+            if (!isShowingAllHints)
             {
-                int x = random.Next(n * n);
-                int y = random.Next(n * n);
-                cells[x, y].Text = map[x, y].ToString();
-                cells[x, y].Enabled = false;
+                for (int i = 0; i < Hints; i++)
+                {
+                    int x = random.Next(n * n);
+                    int y = random.Next(n * n);
+                    cells[x, y].Text = map[x, y].ToString();
+                    cells[x, y].Enabled = false;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < n * n; i++)
+                {
+                    for (int j = 0; j < n * n; j++)
+                    {
+                        cells[i, j].Text = map[i, j].ToString();
+                        cells[i, j].Enabled = false;
+                    }
+                }
             }
         }
         private void cells_Click(object sender, EventArgs e)
         {
-            //Button pressedCell = sender as Button;
-            //string cellText = pressedCell.Text;
-            //if(string.IsNullOrEmpty(cellText))
-            //{
-            //    pressedCell.Text = "1";
-            //}
-            //else
-            //{
-            //    int value = int.Parse(cellText);
-            //    value++;
-            //    if (value == 10) value = 1;
-            //    pressedCell.Text = value.ToString();
-            //}
             Button selectedCell = sender as Button;
             for (int i = 0; i < n * n; i++)
             {
@@ -196,7 +238,6 @@ namespace WFexw
                     }
                 }
             }
-            labelPlayerName.Text = $"{selectedX} {selectedY}";
         }
         private void buttonRubber_Click(object sender, EventArgs e)
         {
@@ -206,9 +247,9 @@ namespace WFexw
                 cells[selectedX, selectedY].ForeColor = Color.Black;
             }
         }
-
         private void buttonN_Click(object sender, EventArgs e)
         {
+            int countSolvedCells = 0;
             Button buttonN = sender as Button;
             if (!checkBoxPen.Checked)//если не заметки
             {
@@ -227,6 +268,21 @@ namespace WFexw
                         Close();
                     }
                 }
+                for(int i = 0; i < n * n; i++)
+                {
+                    for(int j = 0; j < n*n;j++)
+                    {
+                        if (!cells[i,j].Enabled)
+                            countSolvedCells++;
+                    }
+                }
+                if(countSolvedCells == 81)
+                {
+                    MessageBox.Show("You win!");
+                    timer.Stop();
+                    WriteStatistic();
+                    Close();
+                }
             }
             else//если заметки
             {
@@ -237,6 +293,13 @@ namespace WFexw
                         cells[selectedX, selectedY].Text += buttonN.Text;
                 }
             }
+        }
+        private void WriteStatistic()
+        {
+            StreamWriter sw = new StreamWriter("stat.txt",true);
+            sw.AutoFlush = false;
+            sw.WriteLine($"{PlayerName} {lifes} lifes {labelTime.Text}");
+            sw.Close();
         }
     }
 }
